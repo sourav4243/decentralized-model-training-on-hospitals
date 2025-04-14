@@ -189,7 +189,7 @@ def train_with_global_model(hospital_id):
 
     # Split data
     train_x, test_x, train_y, test_y = train_test_split(x, y, test_size=0.3, random_state=2200)
-
+    
     # Fine-tune the global model with a lower learning rate
     model_copy = pickle.loads(pickle.dumps(global_model))  # Deep copy
     model_copy.set_params(learning_rate=0.01)  # Reduce from default (0.3) to a lower value
