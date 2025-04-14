@@ -29,6 +29,8 @@ interface Store {
   shareWeights: (hospitalId: number) => Promise<void>;
   trainWithCentralModel: (hospitalId: number) => Promise<void>;
   trainAllHospitals: () => Promise<void>;
+  trainAllLocalModels: () => Promise<void>;
+  shareAllWeights: () => Promise<void>;
   resetData: () => Promise<void>;
   addLog: (message: string, type: Log['type']) => void;
 }
@@ -267,6 +269,50 @@ const useStore = create<Store>((set, get) => ({
     } catch (error) {
       // Handle errors
       addLog(`Error resetting data: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  },
+
+  trainAllLocalModels: async () => {
+    const { addLog, hospitals, trainLocalModel } = get();
+    addLog('Training local models for all hospitals...', 'info');
+
+    try {
+      // Train local models for all hospitals sequentially
+      for (let i = 1; i <= hospitals.length; i++) {
+        await trainLocalModel(i);
+      }
+
+      addLog('All hospitals have completed local training', 'success');
+    } catch (error) {
+      // Handle errors
+      addLog(`Error training all local models: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  },
+
+  shareAllWeights: async () => {
+    const { addLog, hospitals, shareWeights } = get();
+    addLog('Sharing weights for all trained hospitals...', 'info');
+
+    try {
+      // Get all trained hospitals that haven't shared weights yet
+      const trainedHospitals = hospitals.filter(h =>
+        h.status === 'trained' && h.localAccuracy > 0 && !h.hasSharedWeights
+      );
+
+      if (trainedHospitals.length === 0) {
+        addLog('No trained hospitals found that need to share weights', 'info');
+        return;
+      }
+
+      // Share weights for all trained hospitals
+      for (const hospital of trainedHospitals) {
+        await shareWeights(hospital.id);
+      }
+
+      addLog('All trained hospitals have shared their weights', 'success');
+    } catch (error) {
+      // Handle errors
+      addLog(`Error sharing all weights: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   },
 }));
